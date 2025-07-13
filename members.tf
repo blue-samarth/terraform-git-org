@@ -23,13 +23,6 @@ resource "github_membership" "admins" {
   downgrade_on_destroy = true # Allows downgrading from admin to member
 }
 
-resource "github_membership" "billing_managers" {
-  for_each = toset(["billing1", "billing2"]) # Replace with actual GitHub usernames
-  username = each.value
-  role     = "billing_manager"
-
-  downgrade_on_destroy = true # Allows downgrading from billing manager to member
-}
 
 resource "github_membership" "members" {
   for_each = var.members
