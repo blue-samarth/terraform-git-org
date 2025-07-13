@@ -30,11 +30,11 @@ variable "root_teams" {
   }
 }
 
-resource "github_team" "root-teams" {
+resource "github_team" "root_teams" {
   for_each = {
     for team in var.root_teams : team.name => team
   }
-  
+
   name        = each.value.name
   description = each.value.description
   privacy     = each.value.privacy
@@ -57,9 +57,9 @@ resource "github_team" "subteams" {
   for_each = {
     for subteam in local.subteams : "${subteam.parent_team}-${subteam.name}" => subteam
   }
-  
+
   name           = each.value.name
   description    = each.value.description
   privacy        = each.value.privacy
-  parent_team_id = github_team.root-teams[each.value.parent_team].id
+  parent_team_id = github_team.root_teams[each.value.parent_team].id
 }
