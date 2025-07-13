@@ -30,7 +30,7 @@ variable "root_teams" {
   }
 }
 
-resource "github_team" "root_teams" {
+resource "github_team" "root-teams" {
   for_each = {
     for team in var.root_teams : team.name => team
   }
@@ -55,7 +55,7 @@ locals {
 
 resource "github_team" "subteams" {
   for_each = {
-    for subteam in local.subteams : subteam.name => subteam
+    for subteam in local.subteams : "${subteam.parent_team}-${subteam.name}" => subteam
   }
   
   name           = each.value.name
