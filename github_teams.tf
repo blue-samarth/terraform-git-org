@@ -61,5 +61,5 @@ resource "github_team" "subteams" {
   name           = each.value.name
   description    = each.value.description
   privacy        = each.value.privacy
-  parent_team_id = github_team.root_teams[each.value.parent_team].id
+  parent_team_id = github_team.root-teams[each.value.parent_team].id
 }
