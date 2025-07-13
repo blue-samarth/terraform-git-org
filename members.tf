@@ -20,7 +20,7 @@ resource "github_membership" "admins" {
   username = each.value
   role     = "admin"
 
-  downgrade_allowed = true # Allows downgrading from admin to member
+  downgrade_on_destroy = true # Allows downgrading from admin to member
 }
 
 resource "github_membership" "billing_managers" {
@@ -28,7 +28,7 @@ resource "github_membership" "billing_managers" {
   username = each.value
   role     = "billing_manager"
 
-  downgrade_allowed = true # Allows downgrading from billing manager to member
+  downgrade_on_destroy = true # Allows downgrading from billing manager to member
 }
 
 resource "github_membership" "members" {

@@ -18,9 +18,7 @@ resource "github_organization_settings" "github_organization_settings_this_org" 
   members_can_create_private_pages = false
 
   members_can_fork_private_repositories = false
-  members_can_create_issues             = true
   web_commit_signoff_required           = false
-  members_can_create_teams              = false
 
   advanced_security_enabled_for_new_repositories = true
   dependency_graph_enabled_for_new_repositories  = true
