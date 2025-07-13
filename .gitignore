@@ -57,4 +57,4 @@ Thumbs.db
 .env.*.local
 
 # Ignore lock files (uncomment if you don't want to commit lock files)
-# .terraform.lock.hcl
+.terraform.lock.hcl
