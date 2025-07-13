@@ -80,7 +80,7 @@ extract_teams_from_config() {
         --argjson root_teams "$root_teams" \
         --argjson subteams "$subteams" \
         '{
-            "root-teams": $root_teams,
+            "root_teams": $root_teams,
             "subteams": $subteams
         }' > "$OUTPUT_FILE"
 }
