@@ -30,7 +30,7 @@ variable "root_teams" {
   }
 }
 
-resource "github_team" "root-teams" {
+resource "github_team" "root_teams" {
   for_each = {
     for team in var.root_teams : team.name => team
   }
