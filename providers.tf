@@ -7,9 +7,9 @@ locals {
   environment     = "production"
   organization_id = "org-1234567890"
   billing_account = "billing-1234567890"
-  billing_email  = "billing@example.com"
-  company_name   = "Example Company"
-  email          = "user@example.com"
+  billing_email   = "billing@example.com"
+  company_name    = "Example Company"
+  email           = "user@example.com"
 }
 
 provider "github" {
