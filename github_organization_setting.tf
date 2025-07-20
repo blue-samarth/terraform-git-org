@@ -23,4 +23,5 @@ resource "github_organization_settings" "github_organization_settings_this_org" 
   advanced_security_enabled_for_new_repositories = true
   dependency_graph_enabled_for_new_repositories  = true
   secret_scanning_enabled_for_new_repositories   = true
+
 }

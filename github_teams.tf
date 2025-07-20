@@ -38,6 +38,8 @@ resource "github_team" "root_teams" {
   name        = each.value.name
   description = each.value.description
   privacy     = each.value.privacy
+
+  depends_on = [github_membership.members]
 }
 
 locals {
@@ -62,4 +64,6 @@ resource "github_team" "subteams" {
   description    = each.value.description
   privacy        = each.value.privacy
   parent_team_id = github_team.root_teams[each.value.parent_team].id
+
+  depends_on = [github_team.root_teams]
 }
