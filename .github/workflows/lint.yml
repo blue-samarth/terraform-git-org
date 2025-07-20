@@ -71,7 +71,7 @@ jobs:
       - name: Generate team members template
         if: steps.check-changes.outputs.teams_changed == 'true'
         run: |
-          ./generate_team_members.sh -o team_members.tfvars.json
+          ./scripts/generate_teams.sh
 
       - name: Check if team members file was generated
         if: steps.check-changes.outputs.teams_changed == 'true'
