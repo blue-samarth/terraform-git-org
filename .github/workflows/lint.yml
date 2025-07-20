@@ -113,7 +113,7 @@ jobs:
           fi
 
       - name: Create Pull Request Comment
-        if: github.event.pull_request.head.repo.full_name == github.repository &&steps.check-changes.outputs.teams_changed == 'true' && steps.check-generated.outputs.file_generated == 'true' && github.event_name == 'pull_request'
+        if: github.event.pull_request.head.repo.full_name == github.repository && steps.check-changes.outputs.teams_changed == 'true' && steps.check-generated.outputs.file_generated == 'true' && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
@@ -157,20 +157,21 @@ jobs:
 
             > This template was automatically generated from your teams configuration changes.`;
 
-                github.rest.issues.createComment({
-                  issue_number: context.issue.number,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  body: comment
-                });
-              } catch (err) {
-                core.warning(`Could not parse or comment: ${err.message}`);
-              }
-            } else {
-              core.info('team_members.tfvars.json does not exist, skipping comment.');
-            }
+                      github.rest.pulls.createReview({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        pull_number: context.payload.pull_request.number,
+                        body: comment,
+                        event: 'COMMENT'
+                      });
+                    } catch (err) {
+                      core.warning(`Unable to read or parse team_members.tfvars.json: ${err.message}`);
+                    }
+                  } else {
+                    core.info("No generated file found, skipping review comment.");
+                  }
 
-
+                  
   team-sync-manual:
     name: Manual Team Sync Trigger
     runs-on: ubuntu-latest
