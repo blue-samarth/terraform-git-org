@@ -17,6 +17,7 @@ on:
 
 jobs:
   terraform-lint:
+    if: github.actor != 'github-actions[bot]'
     name: Terraform Lint
     runs-on: ubuntu-latest
 
@@ -43,8 +44,9 @@ jobs:
     name: Generate Team Members Template
     runs-on: ubuntu-latest
     needs: terraform-lint
-    if: contains(github.event.head_commit.message, '[team-sync]') || github.event_name == 'pull_request'
-
+    if: >
+      (github.actor != 'github-actions[bot]') &&
+      (contains(github.event.head_commit.message, '[team-sync]') || github.event_name == 'pull_request')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -102,7 +104,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "Auto-generate team members template from teams configuration
+            git commit -m "Auto-generate team members template [skip ci]"
 
             - Generated from teams.tfvars.json changes
             - Ready for team membership population
@@ -119,44 +121,55 @@ jobs:
             const path = 'team_members.tfvars.json';
 
             if (fs.existsSync(path)) {
-              const content = fs.readFileSync(path, 'utf8');
-              const teams = JSON.parse(content);
-              const rootTeamCount = teams['root-teams'].length;
-              const subteamCount = teams.subteams.length;
+              try {
+                const content = fs.readFileSync(path, 'utf8');
+                const teams = JSON.parse(content);
 
-              const comment = `## 🔄 Team Members Template Generated
+                const rootTeams = Array.isArray(teams['root-teams']) ? teams['root-teams'] : [];
+                const subteams = Array.isArray(teams.subteams) ? teams.subteams : [];
 
-              A new team members template has been generated based on your team configuration changes.
+                const rootTeamCount = rootTeams.length;
+                const subteamCount = subteams.length;
 
-              **Summary:**
-              - Root teams: ${rootTeamCount}
-              - Subteams: ${subteamCount}
+                const comment = `## 🔄 Team Members Template Generated
 
-              **Generated file:** \`team_members.tfvars.json\`
+            A new team members template has been generated based on your team configuration changes.
 
-              **Next steps:**
-              1. Review the generated template structure
-              2. Populate the \`members\` arrays with appropriate usernames
-              3. Use this file for team membership management
+            **Summary:**
+            - Root teams: ${rootTeamCount}
+            - Subteams: ${subteamCount}
 
-              <details>
-              <summary>Generated Template Preview</summary>
+            **Generated file:** \`team_members.tfvars.json\`
 
-              \`\`\`json
-              ${content}
-              \`\`\`
+            **Next steps:**
+            1. Review the generated template structure  
+            2. Populate the \`members\` arrays with appropriate usernames  
+            3. Use this file for team membership management  
 
-              </details>
+            <details>
+            <summary>Generated Template Preview</summary>
 
-              > This template was automatically generated from your teams configuration changes.`;
+            \`\`\`json
+            ${content}
+            \`\`\`
 
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: comment
-              });
+            </details>
+
+            > This template was automatically generated from your teams configuration changes.`;
+
+                github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: comment
+                });
+              } catch (err) {
+                core.warning(`Could not parse or comment: ${err.message}`);
+              }
+            } else {
+              core.info('team_members.tfvars.json does not exist, skipping comment.');
             }
+
 
   team-sync-manual:
     name: Manual Team Sync Trigger
