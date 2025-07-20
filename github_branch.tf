@@ -19,6 +19,6 @@ resource "github_branch" "environment_branches" {
 
   repository = github_repository.repositories[each.value.repository].name
   branch     = each.value.branch
-  
-  depends_on = [ github_repository.repositories ]
+
+  depends_on = [github_repository.repositories]
 }

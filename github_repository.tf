@@ -40,5 +40,5 @@ resource "github_repository" "repositories" {
   vulnerability_alerts_enabled = true
   secret_scanning_enabled      = true
 
-  depends_on = [ github_organization_settings.github_organization_settings_this_org ]
+  depends_on = [github_organization_settings.github_organization_settings_this_org]
 }
