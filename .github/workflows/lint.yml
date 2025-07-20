@@ -112,6 +112,13 @@ jobs:
             - Triggered by commit: ${{ github.sha }}"
             git push
           fi
+      - name: Notify if no changes
+        if: steps.check-changes.outputs.teams_changed == 'false' || steps.check-generated.outputs.file_generated == 'false'
+        run: echo "No changes detected in teams configuration or team members file not generated."
+      
+      - name: Check member status
+        run: |
+          ./scripts/check_member.sh
 
 
                   
