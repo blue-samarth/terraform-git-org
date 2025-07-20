@@ -112,64 +112,6 @@ jobs:
             git push
           fi
 
-      - name: Create Pull Request Comment
-        if: github.event.pull_request.head.repo.full_name == github.repository && steps.check-changes.outputs.teams_changed == 'true' && steps.check-generated.outputs.file_generated == 'true' && github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const path = 'team_members.tfvars.json';
-
-            if (fs.existsSync(path)) {
-              try {
-                const content = fs.readFileSync(path, 'utf8');
-                const teams = JSON.parse(content);
-
-                const rootTeams = Array.isArray(teams['root-teams']) ? teams['root-teams'] : [];
-                const subteams = Array.isArray(teams.subteams) ? teams.subteams : [];
-
-                const rootTeamCount = rootTeams.length;
-                const subteamCount = subteams.length;
-
-                const comment = `## 🔄 Team Members Template Generated
-
-            A new team members template has been generated based on your team configuration changes.
-
-            **Summary:**
-            - Root teams: ${rootTeamCount}
-            - Subteams: ${subteamCount}
-
-            **Generated file:** \`team_members.tfvars.json\`
-
-            **Next steps:**
-            1. Review the generated template structure  
-            2. Populate the \`members\` arrays with appropriate usernames  
-            3. Use this file for team membership management  
-
-            <details>
-            <summary>Generated Template Preview</summary>
-
-            \`\`\`json
-            ${content}
-            \`\`\`
-
-            </details>
-
-            > This template was automatically generated from your teams configuration changes.`;
-
-                      github.rest.pulls.createReview({
-                        owner: context.repo.owner,
-                        repo: context.repo.repo,
-                        pull_number: context.payload.pull_request.number,
-                        body: comment,
-                        event: 'COMMENT'
-                      });
-                    } catch (err) {
-                      core.warning(`Unable to read or parse team_members.tfvars.json: ${err.message}`);
-                    }
-                  } else {
-                    core.info("No generated file found, skipping review comment.");
-                  }
 
                   
   team-sync-manual:
