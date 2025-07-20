@@ -36,9 +36,7 @@ resource "github_repository" "repositories" {
   allow_update_branch    = true
 
   # Security and maintenance
-  archive_on_destroy           = false
-  vulnerability_alerts_enabled = true
-  secret_scanning_enabled      = true
+  archive_on_destroy = true
 
   depends_on = [github_organization_settings.github_organization_settings_this_org]
 }
