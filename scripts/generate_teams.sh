@@ -49,6 +49,37 @@ validate_config_file() {
     fi
 }
 
+# Function to merge existing members with new team structure
+merge_existing_members() {
+    local existing_file="$1"
+    local new_data="$2"
+    
+    if [ -f "$existing_file" ]; then
+        echo "Found existing team members file. Preserving current members..." >&2
+        
+        # Merge existing members into new structure
+        jq -n \
+            --argjson existing "$(cat "$existing_file")" \
+            --argjson new_data "$new_data" \
+            '
+            # Create lookup tables for existing members
+            ($existing.root_teams // [] | map({key: .name, value: .members}) | from_entries) as $existing_root_members |
+            ($existing.subteams // [] | map({key: .name, value: .members}) | from_entries) as $existing_sub_members |
+            
+            # Update new data with existing members
+            $new_data |
+            .root_teams = (.root_teams | map(
+                . + {members: ($existing_root_members[.name] // [])}
+            )) |
+            .subteams = (.subteams | map(
+                . + {members: ($existing_sub_members[.name] // [])}
+            ))
+            '
+    else
+        echo "$new_data"
+    fi
+}
+
 # Function to extract team information from Terraform configuration
 extract_teams_from_config() {
     echo "Extracting team information from Terraform configuration..."
@@ -75,14 +106,22 @@ extract_teams_from_config() {
         }
     ' "$TEAMS_CONFIG_FILE" | jq -s '.')
     
-    # Create the final JSON structure
-    jq -n \
+    # Create the new JSON structure
+    local new_structure
+    new_structure=$(jq -n \
         --argjson root_teams "$root_teams" \
         --argjson subteams "$subteams" \
         '{
             "root_teams": $root_teams,
             "subteams": $subteams
-        }' > "$OUTPUT_FILE"
+        }')
+    
+    # Merge with existing members if file exists
+    local final_structure
+    final_structure=$(merge_existing_members "$OUTPUT_FILE" "$new_structure")
+    
+    # Write the final structure to output file
+    echo "$final_structure" > "$OUTPUT_FILE"
 }
 
 # Function to parse Terraform HCL files if JSON config is not available
@@ -127,19 +166,33 @@ validate_output() {
             jq '.' "$OUTPUT_FILE" > "${OUTPUT_FILE}.tmp" && mv "${OUTPUT_FILE}.tmp" "$OUTPUT_FILE"
             
             # Display summary
-            local root_count subteam_count
-            root_count=$(jq '.["root-teams"] | length' "$OUTPUT_FILE")
+            local root_count subteam_count total_root_members total_sub_members
+            root_count=$(jq '.root_teams | length' "$OUTPUT_FILE")
             subteam_count=$(jq '.subteams | length' "$OUTPUT_FILE")
+            total_root_members=$(jq '[.root_teams[].members | length] | add // 0' "$OUTPUT_FILE")
+            total_sub_members=$(jq '[.subteams[].members | length] | add // 0' "$OUTPUT_FILE")
             
             echo "Generated team members template:"
-            echo "- Root teams: $root_count"
-            echo "- Subteams: $subteam_count"
+            echo "- Root teams: $root_count (with $total_root_members total members)"
+            echo "- Subteams: $subteam_count (with $total_sub_members total members)"
             echo "- Output file: $OUTPUT_FILE"
             
-            # Show preview of generated structure
+            # Show preview of generated structure with member counts
             echo ""
             echo "Preview of generated structure:"
-            jq '.' "$OUTPUT_FILE"
+            jq '. as $data | {
+                root_teams: (.root_teams | map({
+                    name: .name,
+                    member_count: (.members | length),
+                    members: .members
+                })),
+                subteams: (.subteams | map({
+                    name: .name,
+                    parent_team: .parent_team,
+                    member_count: (.members | length),
+                    members: .members
+                }))
+            }' "$OUTPUT_FILE"
         else
             echo "Error: Generated JSON is invalid."
             exit 1
@@ -158,6 +211,8 @@ Usage: $0 [OPTIONS]
 This script generates a JSON template for team membership based on existing
 Terraform team configuration. It reads team definitions from your teams.tfvars.json
 file and creates a structure ready for populating with team members.
+
+IMPORTANT: This script preserves existing team members when updating the structure.
 
 OPTIONS:
     -h, --help      Show this help message
@@ -197,20 +252,26 @@ INPUT FILE FORMAT:
 OUTPUT FORMAT:
     The script generates a file with the following structure:
     {
-        "root-teams": [
+        "root_teams": [
             {
                 "name": "Team Name",
-                "members": []
+                "members": ["existing_user1", "existing_user2"]
             }
         ],
         "subteams": [
             {
                 "name": "Subteam Name",
                 "parent_team": "Parent Team Name",
-                "members": []
+                "members": ["existing_subteam_user1"]
             }
         ]
     }
+
+MEMBER PRESERVATION:
+    - If the output file already exists, existing members will be preserved
+    - New teams will be added with empty member arrays
+    - Removed teams from the config will be dropped from the output
+    - This allows you to update team structure while keeping member assignments
 
 EOF
 }
@@ -259,8 +320,8 @@ main() {
         exit 1
     }
     
-    echo "Team Members JSON Generator"
-    echo "==========================="
+    echo "Team Members JSON Generator (with Member Preservation)"
+    echo "====================================================="
     echo "Working directory: $(pwd)"
     echo "Config file: $TEAMS_CONFIG_FILE"
     echo "Output file: $OUTPUT_FILE"
@@ -283,10 +344,13 @@ main() {
     
     echo ""
     echo "Team members template has been generated successfully!"
-    echo "You can now edit $OUTPUT_FILE to add team members to each team."
+    if [ -f "$OUTPUT_FILE" ]; then
+        echo "Existing team members have been preserved."
+    fi
+    echo "You can now edit $OUTPUT_FILE to add/modify team members."
     echo ""
     echo "Next steps:"
-    echo "1. Edit the generated file to add usernames to the members arrays"
+    echo "1. Edit the generated file to add or modify usernames in the members arrays"
     echo "2. Use this file as input for your Terraform team membership resources"
     echo "3. Apply your Terraform configuration to create the team memberships"
 }

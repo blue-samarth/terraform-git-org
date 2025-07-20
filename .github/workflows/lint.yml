@@ -17,6 +17,7 @@ on:
 
 jobs:
   terraform-lint:
+    if: github.actor != 'github-actions[bot]'
     name: Terraform Lint
     runs-on: ubuntu-latest
 
@@ -43,8 +44,9 @@ jobs:
     name: Generate Team Members Template
     runs-on: ubuntu-latest
     needs: terraform-lint
-    if: contains(github.event.head_commit.message, '[team-sync]') || github.event_name == 'pull_request'
-
+    if: >
+      (github.actor != 'github-actions[bot]') &&
+      (contains(github.event.head_commit.message, '[team-sync]') || github.event_name == 'pull_request')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -66,12 +68,14 @@ jobs:
 
       - name: Make script executable
         if: steps.check-changes.outputs.teams_changed == 'true'
-        run: chmod +x generate_team_members.sh
+        run: |
+          chmod +x ./scripts/generate_teams.sh
+          chmod +x ./scripts/check_member.sh
 
       - name: Generate team members template
         if: steps.check-changes.outputs.teams_changed == 'true'
         run: |
-          ./generate_team_members.sh -o team_members.tfvars.json
+          ./scripts/generate_teams.sh
 
       - name: Check if team members file was generated
         if: steps.check-changes.outputs.teams_changed == 'true'
@@ -96,68 +100,30 @@ jobs:
           git config --local user.name "GitHub Action"
 
       - name: Commit and push changes
-        if: steps.check-changes.outputs.teams_changed == 'true' && steps.check-generated.outputs.file_generated == 'true' && github.event_name == 'push'
+        if: contains(github.event.head_commit.message, '[team-sync]') || github.event_name == 'pull_request' || github.actor != 'github-actions[bot]'
+
         run: |
           git add team_members.tfvars.json
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "Auto-generate team members template from teams configuration
+            git commit -m "Auto-generate team members template [skip ci]
 
             - Generated from teams.tfvars.json changes
             - Ready for team membership population
             - Triggered by commit: ${{ github.sha }}"
             git push
           fi
+      - name: Notify if no changes
+        if: steps.check-changes.outputs.teams_changed == 'false' || steps.check-generated.outputs.file_generated == 'false'
+        run: echo "No changes detected in teams configuration or team members file not generated."
+      
+      - name: Check member status
+        run: |
+          ./scripts/check_member.sh
 
-      - name: Create Pull Request Comment
-        if: github.event.pull_request.head.repo.full_name == github.repository &&steps.check-changes.outputs.teams_changed == 'true' && steps.check-generated.outputs.file_generated == 'true' && github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const path = 'team_members.tfvars.json';
 
-            if (fs.existsSync(path)) {
-              const content = fs.readFileSync(path, 'utf8');
-              const teams = JSON.parse(content);
-              const rootTeamCount = teams['root-teams'].length;
-              const subteamCount = teams.subteams.length;
-
-              const comment = `## 🔄 Team Members Template Generated
-
-              A new team members template has been generated based on your team configuration changes.
-
-              **Summary:**
-              - Root teams: ${rootTeamCount}
-              - Subteams: ${subteamCount}
-
-              **Generated file:** \`team_members.tfvars.json\`
-
-              **Next steps:**
-              1. Review the generated template structure
-              2. Populate the \`members\` arrays with appropriate usernames
-              3. Use this file for team membership management
-
-              <details>
-              <summary>Generated Template Preview</summary>
-
-              \`\`\`json
-              ${content}
-              \`\`\`
-
-              </details>
-
-              > This template was automatically generated from your teams configuration changes.`;
-
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: comment
-              });
-            }
-
+                  
   team-sync-manual:
     name: Manual Team Sync Trigger
     runs-on: ubuntu-latest
@@ -173,11 +139,13 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y jq
 
       - name: Make script executable
-        run: chmod +x generate_team_members.sh
+        run: |
+          chmod +x ./scripts/generate_teams.sh 
+          chmod +x ./scripts/check_member.sh
 
       - name: Generate team members template
         run: |
-          ./generate_team_members.sh -o team_members.tfvars.json
+          ./scripts/generate_teams.sh
 
       - name: Configure Git
         run: |
