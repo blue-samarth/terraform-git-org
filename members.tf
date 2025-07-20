@@ -21,6 +21,8 @@ resource "github_membership" "admins" {
   role     = "admin"
 
   downgrade_on_destroy = true # Allows downgrading from admin to member
+
+    depends_on = [ github_organization_settings.github_organization_settings_this_org ]
 }
 
 
@@ -28,4 +30,6 @@ resource "github_membership" "members" {
   for_each = var.members
   username = each.value
   role     = "member"
+
+  depends_on = [ github_organization_settings.github_organization_settings_this_org.id ]
 }
