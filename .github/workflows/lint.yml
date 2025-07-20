@@ -137,7 +137,9 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y jq
 
       - name: Make script executable
-        run: chmod +x ./scripts/generate_teams.sh
+        run: |
+          chmod +x ./scripts/generate_teams.sh 
+          chmod +x ./scripts/check_member.sh
 
       - name: Generate team members template
         run: |
