@@ -105,7 +105,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "Auto-generate team members template [skip ci]"
+            git commit -m "Auto-generate team members template [skip ci]
 
             - Generated from teams.tfvars.json changes
             - Ready for team membership population
