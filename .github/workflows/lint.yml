@@ -66,7 +66,7 @@ jobs:
 
       - name: Make script executable
         if: steps.check-changes.outputs.teams_changed == 'true'
-        run: chmod +x generate_team_members.sh
+        run: chmod +x ./scripts/generate_teams.sh
 
       - name: Generate team members template
         if: steps.check-changes.outputs.teams_changed == 'true'
@@ -173,11 +173,11 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y jq
 
       - name: Make script executable
-        run: chmod +x generate_team_members.sh
+        run: chmod +x ./scripts/generate_teams.sh
 
       - name: Generate team members template
         run: |
-          ./generate_team_members.sh -o team_members.tfvars.json
+          ./scripts/generate_teams.sh
 
       - name: Configure Git
         run: |
